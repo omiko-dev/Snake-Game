@@ -8,50 +8,199 @@ using System.Threading.Tasks;
 
 namespace ConsoleApp1
 {
-    class Program
+
+    public class Menu
     {
-        private const int MapWidth = 20;
-        private const int MapHeight = 10;
 
-        private const int ScreenWidth = MapWidth * 3;
-        private const int ScreenHeight = MapHeight * 3;
-
-        private const int FrameMilliseconds = 200;
-
-        private const ConsoleColor BorderColor = ConsoleColor.Gray;
-
-        private const ConsoleColor FoodColor = ConsoleColor.Green;
-
-        private const ConsoleColor BodyColor = ConsoleColor.Red;
-        private const ConsoleColor HeadColor = ConsoleColor.DarkBlue;
-        static public int topScore = 0;
-
-        private static readonly Random Random = new Random();
-
-        static void Main(string[] Args)
+        public Menu(Player player)
+        {
+            this.player = player;
+        }
+        public Player player { get; set; }
+        int topScore = 0;
+        public void ShowStartMenu()
         {
 
+            player.Score = 1000;
+            Console.Clear();
 
-            Console.SetWindowSize(ScreenWidth, ScreenHeight);
-            Console.SetBufferSize(ScreenWidth, ScreenHeight);
-            Console.CursorVisible = false;
+            string title = "SNAKE GAME";
+            string option1 = "Start Game";
+            string option2 = "Choose Skin";
+            string option3 = "Exit";
+            string scoreString = $"Score: {topScore}";
+            string topScoreString = $"Top Score: {topScore}";
+
+
+            Console.ForegroundColor = ConsoleColor.Green;
+
+            int centerX = (Console.WindowWidth - title.Length) / 2;
+            int centerY = Console.WindowHeight / 2 - 2;
+
+            Console.SetCursorPosition(centerX + 15, centerY / 10);
+            Console.WriteLine("User: " + player.userName);
+
+            Console.SetCursorPosition(centerX / 10, centerY / 10);
+            Console.WriteLine(topScoreString);
+
+            Console.SetCursorPosition(centerX, centerY);
+            Console.WriteLine(title);
+
+            Console.SetCursorPosition(centerX, centerY);
+            Console.WriteLine(title);
+
+            Console.ForegroundColor = ConsoleColor.White;
+
+            Console.SetCursorPosition(centerX, centerY + 1);
+            Console.WriteLine(option1);
+
+            Console.SetCursorPosition(centerX, centerY + 2);
+            Console.WriteLine(option2);
+
+            Console.SetCursorPosition(centerX, centerY + 3);
+            Console.WriteLine(option3);
+
+            int selectedOption = 1;
 
             while (true)
             {
-                StartGame();
-                Thread.Sleep(2000);
-                Console.ReadKey();
+                ConsoleKeyInfo key = Console.ReadKey();
+
+                if (key.Key == ConsoleKey.Enter)
+                {
+                    HandleStartMenuInput(selectedOption);
+                    return;
+                }
+
+                if (key.Key == ConsoleKey.UpArrow)
+                    selectedOption = Math.Max(selectedOption - 1, 1);
+                else if (key.Key == ConsoleKey.DownArrow)
+                    selectedOption = Math.Min(selectedOption + 1, 3);
+
+                Console.Clear();
+
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.SetCursorPosition(centerX, centerY);
+                Console.WriteLine(title);
+
+
+                Console.SetCursorPosition(centerX + 15, centerY / 10);
+                Console.WriteLine("User: " + player.userName);
+
+                Console.SetCursorPosition(centerX / 10, centerY / 10);
+                Console.WriteLine(topScoreString);
+
+                Console.ForegroundColor = ConsoleColor.White;
+
+                Console.SetCursorPosition(centerX, centerY + 1);
+                Console.WriteLine(selectedOption == 1 ? $"> {option1}" : option1);
+
+                Console.SetCursorPosition(centerX, centerY + 2);
+                Console.WriteLine(selectedOption == 2 ? $"> {option2}" : option2);
+
+                Console.SetCursorPosition(centerX, centerY + 3);
+                Console.WriteLine(selectedOption == 3 ? $"> {option3}" : option3);
             }
         }
 
-        static void StartGame()
+        void HandleStartMenuInput(int selectedOption)
         {
-            int score = 0;
+            switch (selectedOption)
+            {
+                case 1:
+                    Start();
+                    ShowStartMenu();
+                    break;
+                case 2:
+                    ChooseSkin();
+                    ShowStartMenu();
+                    break;
+                case 3:
+                    Environment.Exit(0);
+                    break;
+            }
+        }
+
+        void Start()
+        {
+            Game game = new Game(topScore);
+            game.StartGame(player);
+            topScore = game.getTopScore();
+            player.Score += game.getScore();
+
+        }
+
+        void ChooseSkin()
+        {
+            Shop shopMenu = new Shop();
+            shopMenu.ShowShop(player);
+        }
+    }
+
+    class Program
+    {
+        static void Main(string[] Args)
+        {
+            Console.SetWindowSize(60, 30);
+            Console.SetBufferSize(60, 30);
+            Console.CursorVisible = false;
+
+            Console.Write("Enter Your Name: ");
+            var name = Console.ReadLine();
+
+            var player = new Player(name);
+
+            Menu i = new Menu(player);
+            i.ShowStartMenu();
+        }
+    }
+
+    public class Game
+    {
+        public static int MapWidth = 20;
+        public static int MapHeight = 10;
+        public static int ScreenWidth = MapWidth * 3;
+        public static int ScreenHeight = MapHeight * 3;
+        private static readonly Random Random = new Random();
+        private const int FrameMilliseconds = 200;
+        private const ConsoleColor BorderColor = ConsoleColor.Gray;
+        private const ConsoleColor FoodColor = ConsoleColor.Green;
+        private const ConsoleColor BodyColor = ConsoleColor.Red;
+        private const ConsoleColor HeadColor = ConsoleColor.DarkBlue;
+        static public int topScore;
+        static public int score;
+
+        public Game()
+        {
+
+        }
+
+        public Game(int _topScore)
+        {
+            topScore = _topScore;
+        }
+
+        public int getTopScore()
+        {
+            return topScore;
+        }
+        public int getScore()
+        {
+            return score;
+        }
+
+        private readonly ConsoleColor[] skinColors = { ConsoleColor.Red, ConsoleColor.DarkBlue, ConsoleColor.Green };
+
+
+        public void StartGame(Player player)
+        {
+            score = 0;
 
             Console.Clear();
             DrawBoard();
 
-            Snake snake = new Snake(10, 5, HeadColor, BodyColor);
+            Snake snake = new Snake(10, 5, skinColors[(int)player.SelectedSkin]);
+
 
             Pixel food = GenFood(snake);
             food.Draw();
@@ -63,8 +212,6 @@ namespace ConsoleApp1
 
             while (true)
             {
-
-
                 sw.Restart();
                 Direction oldMovement = currentMovement;
 
@@ -104,7 +251,7 @@ namespace ConsoleApp1
                 lagMs = (int)sw.ElapsedMilliseconds;
             }
 
-            if(topScore < score)
+            if (topScore < score)
             {
                 topScore = score;
             }
@@ -112,12 +259,7 @@ namespace ConsoleApp1
             snake.Clear();
             food.Clear();
 
-            Console.SetCursorPosition((int)(ScreenWidth / 2.5), (int)(ScreenHeight / 2.5));
-            Console.WriteLine($"Game over");
-            Console.SetCursorPosition((int)(ScreenWidth / 2.5), ScreenHeight / 3);
-            Console.WriteLine($"Top Score: {topScore}");
 
-            Task.Run(() => Console.Beep(200, 600));
         }
 
         static void DrawBoard()
@@ -171,6 +313,8 @@ namespace ConsoleApp1
         }
     }
 
+
+
     public class Snake
     {
         private readonly ConsoleColor _headColor;
@@ -179,14 +323,13 @@ namespace ConsoleApp1
 
         public Snake(int initialX,
             int initialY,
-            ConsoleColor headColor,
             ConsoleColor bodyColor,
             int bodyLength = 3)
         {
-            _headColor = headColor;
+            _headColor = ConsoleColor.Blue;
             _bodyColor = bodyColor;
 
-            Head = new Pixel(initialX, initialY, headColor);
+            Head = new Pixel(initialX, initialY, _headColor);
 
             for (int i = bodyLength; i >= 0; i--)
             {
@@ -303,4 +446,125 @@ namespace ConsoleApp1
         Right,
         Left
     }
+
+
+
+
+    public class Shop
+    {
+        private static List<int> purchasedSkins = new List<int>();
+
+        public static bool access = true;
+
+        public void ShowShop(Player player)
+        {
+            access = true;
+
+            Console.Clear();
+            Console.WriteLine("Welcome to the Shop!");
+            Console.WriteLine($"Your Points: {player.Score}");
+
+            int selectedOption = 1;
+
+            do
+            {
+                Console.Clear();
+                Console.WriteLine("Welcome to the Shop!");
+                Console.WriteLine($"Your Points: {player.Score}");
+                Console.WriteLine("1. Blue Skin - 50 points" + (selectedOption == 1 ? " <-" : "") + (purchasedSkins.Contains(1) ? " (Owned)" : ""));
+                Console.WriteLine("2. White Skin - 75 points" + (selectedOption == 2 ? " <-" : "") + (purchasedSkins.Contains(2) ? " (Owned)" : ""));
+                Console.WriteLine("3. Green Skin - 100 points" + (selectedOption == 3 ? " <-" : "") + (purchasedSkins.Contains(3) ? " (Owned)" : ""));
+                Console.WriteLine("4. Exit" + (selectedOption == 4 ? " <-" : ""));
+
+                ConsoleKeyInfo key = Console.ReadKey(true);
+
+                switch (key.Key)
+                {
+                    case ConsoleKey.UpArrow:
+                        selectedOption = Math.Max(1, selectedOption - 1);
+                        break;
+                    case ConsoleKey.DownArrow:
+                        selectedOption = Math.Min(4, selectedOption + 1);
+                        break;
+                    case ConsoleKey.Enter:
+                        ProcessSelection(player, selectedOption);
+                        break;
+                }
+
+            } while (access);
+        }
+
+        private void ProcessSelection(Player player, int selectedOption)
+        {
+            if (purchasedSkins.Contains(selectedOption))
+            {
+                Console.WriteLine("You already own this skin!");
+            }
+            else
+            {
+                BuySkin(player, selectedOption);
+            }
+        }
+
+        private void BuySkin(Player player, int selectedOption)
+        {
+            int cost = GetSkinCost(selectedOption);
+
+            if (selectedOption == 4)
+                return;
+
+            if (player.Score >= cost)
+            {
+                player.Score -= cost;
+                player.SelectedSkin = (SnakeSkin)selectedOption; // Convert selectedOption to SnakeSkin enum
+                purchasedSkins.Add(selectedOption);
+                Console.WriteLine($"You've successfully bought the skin {player.SelectedSkin}!");
+            }
+            else
+            {
+                Console.WriteLine("Not enough points to buy this skin!");
+            }
+
+            Console.WriteLine("Press any key to continue...");
+            Console.ReadKey();
+        }
+
+        private int GetSkinCost(int selectedOption)
+        {
+            switch (selectedOption)
+            {
+                case 1:
+                    return 50;
+                case 2:
+                    return 75;
+                case 3:
+                    return 100;
+                default:
+                    access = false;
+                    break;
+            }
+            return 0;
+        }
+    }
+
+}
+
+public class Player
+{
+    public Player() { }
+    public Player(string userName)
+    {
+        this.userName = userName;
+    }
+
+    public string userName { get; set; }
+    public int Score { get; set; } = 0;
+    public SnakeSkin SelectedSkin { get; set; }
+}
+
+public enum SnakeSkin
+{
+    Red,
+    Blue,
+    Green
 }
